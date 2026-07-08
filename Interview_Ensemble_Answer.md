@@ -95,11 +95,3 @@ Multimodal:                      →  Max-score fusion
 
 ---
 
-## Bug Status (All Fixed)
-
-| Bug | Status |
-|-----|--------|
-| Image normalization mismatch (ImageNet vs training [0.5]*3) | Fixed |
-| Email preprocessing mismatch (raw text vs TF-IDF trained on cleaned) | Fixed |
-| SVM `_effective_probability` AttributeError (sklearn version) | Fixed |
-| TF-IDF `_idf_diag` sparse matrix patch | Fixed |
