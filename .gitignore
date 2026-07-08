@@ -1,0 +1,34 @@
+# Python environments
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+.Rhistory
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Training datasets (large, not needed for deployment)
+1.EMAIL/Phishing_Email.csv
+1.EMAIL/cleaned_phishing_email.csv
+1.EMAIL/fusion_email_model/
+2.URL/dataset_phishing.csv
+2.URL/all_saved_files_url/
+3.IMAGES/train/
+3.IMAGES/val/
+3.IMAGES/image_fusion_model.pkl
+
+# Claude Code local config (keep .claude/launch.json but not local settings)
+.claude/settings.local.json
+
+# Test artifacts
+backend/.pytest_cache/
