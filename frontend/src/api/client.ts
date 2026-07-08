@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import type { PredictionResult, MultimodalResult, ModelStatus } from '../types'
 
-const api = axios.create({ baseURL: '/api' })
+const api = axios.create({ baseURL: (import.meta.env.VITE_API_URL ?? '') + '/api' })
 
 // Extract a human-readable message from FastAPI error responses
 function extractError(err: unknown): string {

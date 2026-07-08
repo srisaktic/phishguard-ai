@@ -280,7 +280,7 @@ import uvicorn
 
 app = FastAPI(title="PhishGuard AI", version="2.0")
 app.add_middleware(CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["*"],
     allow_methods=["GET", "POST"], allow_headers=["*"])
 
 @app.exception_handler(Exception)
@@ -391,5 +391,6 @@ async def predict_multimodal(
     return fusion
 
 if __name__ == "__main__":
-    print("[INFO] Starting PhishGuard AI → http://localhost:8000", flush=True)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 7860))
+    print(f"[INFO] Starting PhishGuard AI → http://localhost:{port}", flush=True)
+    uvicorn.run(app, host="0.0.0.0", port=port)
