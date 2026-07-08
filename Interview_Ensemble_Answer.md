@@ -1,4 +1,4 @@
-# Interview Q&A: Ensemble & Fusion Strategy in PhishGuard AI
+# Ensemble & Fusion Strategy in PhishGuard AI
 
 **Question:** "If SVM is used for email and BERT is used for URL, what's the purpose of the ensemble technique? Why did you implement fusion only for image?"
 
