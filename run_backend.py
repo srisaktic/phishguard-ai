@@ -92,7 +92,7 @@ email_model = _load("svm_model_email.pkl")
 url_model   = _load("url_log_reg_model.pkl")  # kept but unused (BERT handles URL)
 
 # TF-IDF vectorizer lives with the individual email models
-email_tfid = _load_path(os.path.join(BASE, "1.EMAIL", "fusion_email_model", "tfid_vectorizer.pkl"))
+email_tfid = _load_path(os.path.join(MODELS, "tfid_vectorizer.pkl"))
 # sklearn version mismatch: 1.6 stores idf_ as array, 1.4 expects _idf_diag sparse matrix
 if email_tfid is not None and hasattr(email_tfid, '_tfidf'):
     t = email_tfid._tfidf
