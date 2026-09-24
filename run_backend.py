@@ -203,7 +203,11 @@ def _url_features(url: str):
     return pd.DataFrame(raw, columns=cols)
 
 def _url_predict(url: str) -> float:
-    """Predict URL phishing probability using BERT (BertForSequenceClassification).
+    """Predict URL phishing probability.
+
+    Fuses BERT (semantic patterns) with logistic regression on structural features
+    when the LR model is available. BERT dominates (80%) since it captures
+    character-level phishing patterns; LR adds explicit structural signal (20%).
     Label mapping: 0 = legitimate, 1 = phishing.
     """
     if bert_url_model is None or bert_url_tokenizer is None:
@@ -217,9 +221,18 @@ def _url_predict(url: str) -> float:
     )
     enc = {k: v.to(device) for k, v in enc.items()}
     with torch.no_grad():
-        logits = bert_url_model(**enc).logits         # shape: [1, 2]
-        prob   = torch.softmax(logits, dim=1)[0, 1]   # index 1 = phishing
-    return float(prob.cpu().item())
+        logits    = bert_url_model(**enc).logits
+        bert_prob = float(torch.softmax(logits, dim=1)[0, 1].cpu().item())
+
+    if url_model is not None:
+        try:
+            df      = _url_features(url)
+            lr_prob = float(url_model.predict_proba(df)[0, 1])
+            return 0.80 * bert_prob + 0.20 * lr_prob
+        except Exception:
+            pass
+
+    return bert_prob
 
 def _image_predict(data: bytes) -> float:
     img    = PILImage.open(io.BytesIO(data)).convert("RGB")
@@ -323,7 +336,8 @@ def predict_url(body: UrlReq):
         df    = _url_features(url)
         feats = {c: round(float(df[c].iloc[0]), 4) for c in df.columns}
     except: feats = None
-    return _result("url", prob, ["BERT"], int((time.perf_counter()-t0)*1000), feats)
+    models_used = ["BERT", "LR-structural"] if url_model is not None else ["BERT"]
+    return _result("url", prob, models_used, int((time.perf_counter()-t0)*1000), feats)
 
 @app.post("/api/predict/image")
 async def predict_image(file: UploadFile = File(...)):
@@ -335,25 +349,33 @@ async def predict_image(file: UploadFile = File(...)):
     return _result("image", prob, ["ResNet50", "EfficientNet-B0", "DenseNet121"],
                    int((time.perf_counter()-t0)*1000))
 
-def _fuse_max(results: dict, threshold: float = 0.55) -> dict:
-    """Conservative max-score fusion: final probability = max(available modality scores).
+_MODALITY_WEIGHTS = {
+    "email": 0.25,   # SVM only — weakest single model
+    "url":   0.40,   # BERT + structural LR — strongest signal
+    "image": 0.35,   # 3-CNN ensemble — strong but domain-narrow
+}
 
-    A single strong phishing signal from any modality drives the final verdict.
-    No dilution from weaker signals on other modalities.
+def _fuse_weighted(results: dict, threshold: float = 0.55) -> dict:
+    """F1-weighted average fusion across available modalities.
+
+    Weights re-normalise when only a subset of modalities are provided.
+    Reduces false positives from one over-confident modality.
     """
-    scores = {k: float(results[k]["phishing_probability"]) for k in results}
-    triggered_by  = max(scores, key=scores.get)
-    final_prob    = scores[triggered_by]
-    label = "phishing"   if final_prob >= threshold else ("legitimate" if (1 - final_prob) > threshold else "uncertain")
-    risk  = "high"       if final_prob >= 0.7       else ("medium"     if final_prob >= 0.45            else "low")
+    scores       = {k: float(results[k]["phishing_probability"]) for k in results}
+    total_weight = sum(_MODALITY_WEIGHTS.get(k, 1.0) for k in scores)
+    final_prob   = sum(_MODALITY_WEIGHTS.get(k, 1.0) * v for k, v in scores.items()) / total_weight
+    triggered_by = max(scores, key=scores.get)
+    label = "phishing"  if final_prob >= threshold else ("legitimate" if (1 - final_prob) > threshold else "uncertain")
+    risk  = "high"      if final_prob >= 0.7       else ("medium"     if final_prob >= 0.45            else "low")
     return {
-        "label":          label,
-        "probability":    round(final_prob, 4),
-        "confidence":     round(max(final_prob, 1 - final_prob), 4),
-        "risk_level":     risk,
-        "triggered_by":   triggered_by,
-        "fusion_method":  "maximum_score",
-        "modality_scores": {k: round(v, 4) for k, v in scores.items()},
+        "label":            label,
+        "probability":      round(final_prob, 4),
+        "confidence":       round(max(final_prob, 1 - final_prob), 4),
+        "risk_level":       risk,
+        "triggered_by":     triggered_by,
+        "fusion_method":    "weighted_average",
+        "modality_scores":  {k: round(v, 4) for k, v in scores.items()},
+        "modality_weights": {k: _MODALITY_WEIGHTS.get(k, 1.0) for k in scores},
     }
 
 
@@ -385,7 +407,7 @@ async def predict_multimodal(
     if not results:
         raise HTTPException(422, "Provide at least one of: email_content, url, image")
 
-    fusion = _fuse_max(results)
+    fusion = _fuse_weighted(results)
     fusion["modalities"]          = results
     fusion["processing_time_ms"]  = int((time.perf_counter() - t0) * 1000)
     return fusion
