@@ -53,9 +53,9 @@ export default function EmailCard({ onResult }: Props) {
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Email Analysis</h2>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span className="badge" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>TF-IDF Vectorizer</span>
+            <span className="badge" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>BERT</span>
             <span className="badge" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>SVM</span>
-            <span className="badge" style={{ background: 'var(--safe-bg)', color: 'var(--safe)', border: '1px solid var(--safe-border)' }}>120,375 features</span>
+            <span className="badge" style={{ background: 'var(--safe-bg)', color: 'var(--safe)', border: '1px solid var(--safe-border)' }}>Fine-tuned fusion</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 7, flexShrink: 0 }}>
@@ -86,7 +86,7 @@ export default function EmailCard({ onResult }: Props) {
           {loading ? 'Analyzing…' : '⚡  Analyze Email'}
         </button>
       </form>
-      {loading && <LoadingSpinner label="Running TF-IDF + SVM analysis..." />}
+      {loading && <LoadingSpinner label="Running BERT + SVM fusion analysis..." />}
     </div>
   )
 }

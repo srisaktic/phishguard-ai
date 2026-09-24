@@ -22,9 +22,10 @@ export interface MultimodalResult {
   confidence: number
   risk_level: 'high' | 'medium' | 'low'
   modalities: ModalityResults
-  triggered_by: string                    // modality with highest phishing probability
-  fusion_method: string                   // "maximum_score"
-  modality_scores: Record<string, number> // per-modality phishing probabilities
+  triggered_by: string                      // modality with highest phishing probability
+  fusion_method: string                     // "weighted_average"
+  modality_scores: Record<string, number>   // per-modality phishing probabilities
+  modality_weights?: Record<string, number> // per-modality fusion weights
   processing_time_ms: number
 }
 

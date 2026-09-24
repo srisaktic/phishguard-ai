@@ -63,8 +63,8 @@ export default function MultimodalCard({ onResult }: Props) {
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Multimodal Analysis</h2>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span className="badge" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>Max-Score Fusion</span>
-            <span className="badge" style={{ background: 'var(--safe-bg)', color: 'var(--safe)', border: '1px solid var(--safe-border)' }}>Conservative Decision</span>
+            <span className="badge" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>Weighted Average</span>
+            <span className="badge" style={{ background: 'var(--safe-bg)', color: 'var(--safe)', border: '1px solid var(--safe-border)' }}>F1-Weighted Decision</span>
             {/* "How?" hyperlink — explains the fusion method */}
             <button onClick={() => setShowWeights(!showWeights)} style={{
               background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, cursor: 'pointer',
@@ -85,28 +85,28 @@ export default function MultimodalCard({ onResult }: Props) {
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', marginBottom: 12 }}>ℹ How Multimodal Decision Fusion Works</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 14 }}>
             Each active modality independently produces a phishing probability score (0–1).
-            The system uses the <strong style={{ color: 'var(--text)' }}>highest probability</strong> among all
-            provided modalities as the final confidence score. This conservative approach ensures a
-            strong phishing signal from one modality is <strong style={{ color: 'var(--text)' }}>never diluted</strong> by
-            lower scores from other modalities.
+            The final score is a <strong style={{ color: 'var(--text)' }}>weighted average</strong> across modalities,
+            with weights reflecting each model's strength: URL (40%), Image (35%), Email (25%).
+            Weights automatically renormalise when only a subset of modalities are provided.
           </div>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12.5, background: 'var(--bg)', borderRadius: 7, padding: '10px 14px', color: 'var(--accent)', marginBottom: 14 }}>
-            Final score = max(Email score, URL score, Image score)
+            Final = (0.25×Email + 0.40×URL + 0.35×Image) / total_weight
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
-            The modality with the highest phishing probability becomes the <strong style={{ color: 'var(--text)' }}>primary evidence</strong>.
-            Missing modalities are simply ignored — no renormalization needed.
+            The modality with the highest score is shown as <strong style={{ color: 'var(--text)' }}>triggered by</strong>.
+            This approach reduces false positives from one over-confident modality while preserving sensitivity.
           </div>
           {/* Live example */}
           <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 10 }}>Example</div>
             {[
-              { l: 'Email', v: 28, primary: false },
-              { l: 'URL',   v: 91, primary: true  },
-              { l: 'Image', v: 36, primary: false },
+              { l: 'Email', v: 28, w: '25%', primary: false },
+              { l: 'URL',   v: 91, w: '40%', primary: true  },
+              { l: 'Image', v: 36, w: '35%', primary: false },
             ].map(m => (
               <div key={m.l} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
                 <span style={{ fontSize: 12, width: 46, fontWeight: m.primary ? 700 : 500, color: m.primary ? 'var(--accent)' : 'var(--muted)' }}>{m.l}</span>
+                <span style={{ fontSize: 11, color: 'var(--muted)', width: 28 }}>{m.w}</span>
                 <div style={{ flex: 1, background: 'var(--border)', borderRadius: 4, height: 8, overflow: 'hidden' }}>
                   <div style={{ width: `${m.v}%`, height: '100%', background: m.primary ? 'var(--danger)' : 'var(--muted)', borderRadius: 4, opacity: m.primary ? 1 : 0.5 }} />
                 </div>
@@ -116,7 +116,7 @@ export default function MultimodalCard({ onResult }: Props) {
               </div>
             ))}
             <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-              Final score = <span style={{ color: 'var(--danger)', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>91%</span> (URL) → <span style={{ color: 'var(--danger)', fontWeight: 700 }}>Phishing</span>
+              Final = (0.25×28 + 0.40×91 + 0.35×36) / 1.0 = <span style={{ color: 'var(--danger)', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>56.6%</span> → <span style={{ color: 'var(--danger)', fontWeight: 700 }}>Phishing</span>
             </div>
           </div>
         </div>
@@ -186,7 +186,7 @@ export default function MultimodalCard({ onResult }: Props) {
           {loading ? 'Fusing modalities…' : '⚡  Analyze Multimodal'}
         </button>
       </form>
-      {loading && <LoadingSpinner label="Running max-score fusion across modalities..." />}
+      {loading && <LoadingSpinner label="Running weighted-average fusion across modalities..." />}
     </div>
   )
 }

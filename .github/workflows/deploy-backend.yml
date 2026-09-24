@@ -1,0 +1,69 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'run_backend.py'
+      - 'models.py'
+      - 'requirements.txt'
+      - 'Dockerfile'
+      - 'models/**'
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code (with LFS)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: phishguard-ai-509120
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build & push image via Cloud Build
+        run: |
+          gcloud builds submit \
+            --tag gcr.io/phishguard-ai-509120/backend:${{ github.sha }} \
+            --timeout=20m \
+            --project phishguard-ai-509120
+
+      - name: Tag as latest
+        run: |
+          gcloud container images add-tag \
+            gcr.io/phishguard-ai-509120/backend:${{ github.sha }} \
+            gcr.io/phishguard-ai-509120/backend:latest \
+            --quiet
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy phishguard-backend \
+            --image gcr.io/phishguard-ai-509120/backend:${{ github.sha }} \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --memory 2Gi \
+            --timeout 300 \
+            --port 7860 \
+            --project phishguard-ai-509120
+
+      - name: Print deployed URL
+        run: |
+          gcloud run services describe phishguard-backend \
+            --platform managed \
+            --region us-central1 \
+            --format 'value(status.url)' \
+            --project phishguard-ai-509120

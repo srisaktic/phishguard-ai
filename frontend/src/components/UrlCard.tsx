@@ -31,8 +31,8 @@ export default function UrlCard({ onResult }: Props) {
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>URL Analysis</h2>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <span className="badge" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>BERT</span>
-            <span className="badge" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>bert-base-uncased</span>
-            <span className="badge" style={{ background: 'var(--safe-bg)', color: 'var(--safe)', border: '1px solid var(--safe-border)' }}>Fine-tuned</span>
+            <span className="badge" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>LR-Structural</span>
+            <span className="badge" style={{ background: 'var(--safe-bg)', color: 'var(--safe)', border: '1px solid var(--safe-border)' }}>Fine-tuned fusion</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 7, flexShrink: 0 }}>
@@ -73,7 +73,7 @@ export default function UrlCard({ onResult }: Props) {
           {loading ? 'Analyzing…' : '⚡  Analyze URL'}
         </button>
       </form>
-      {loading && <LoadingSpinner label="Running BERT URL analysis..." />}
+      {loading && <LoadingSpinner label="Running BERT + structural fusion analysis..." />}
     </div>
   )
 }

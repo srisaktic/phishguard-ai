@@ -63,10 +63,14 @@ export async function getStatus(): Promise<ModelStatus> {
     const loaded = Object.values(data.models).every(Boolean)
     return {
       models_loaded: loaded,
-      supported_modalities: Object.keys(data.models).filter(k => data.models[k]),
+      supported_modalities: Object.keys(data.models).filter(k => data.models[k] && !k.includes('_')),
       models: {
-        email: { 'TF-IDF + SVM': data.models.email ?? false },
-        url: { 'BERT URL Classifier (bert-base-uncased)': data.models.url ?? false },
+        email: {
+          'BERT (fine-tuned)': data.models.email_bert ?? data.models.email ?? false,
+          'SVM + TF-IDF':      data.models.email_svm  ?? data.models.email ?? false,
+        },
+        url:   { 'BERT (bert-base-uncased, fine-tuned)': data.models.url   ?? false,
+                 'LR Structural Features':               data.models.url   ?? false },
         image: { 'CNN Ensemble (ResNet50 + EfficientNet-B0 + DenseNet121)': data.models.image ?? false },
       },
     }
