@@ -139,6 +139,26 @@ try:
 except Exception as e:
     print(f"  [skip] bert_url: {e}", flush=True)
 
+# ── 3b. Load BERT Email model ──────────────────────────────────────────────────
+print("[INFO] Loading BERT Email model …", flush=True)
+_bert_email_dir      = os.path.join(MODELS, "bert_email")
+bert_email_model     = None
+bert_email_tokenizer = None
+try:
+    if not os.path.isdir(_bert_email_dir):
+        raise FileNotFoundError(f"bert_email directory not found: {_bert_email_dir}")
+    bert_email_tokenizer = BertTokenizer.from_pretrained(
+        _bert_email_dir, local_files_only=True
+    )
+    bert_email_model = BertForSequenceClassification.from_pretrained(
+        _bert_email_dir, local_files_only=True
+    )
+    bert_email_model.eval()
+    bert_email_model.to(device)
+    print("  [ok] bert_email (BertForSequenceClassification + BertTokenizer)", flush=True)
+except Exception as e:
+    print(f"  [skip] bert_email: {e}", flush=True)
+
 # ── 3. Image fusion model with CUDA→CPU patch ─────────────────────────────────
 image_model = None
 try:
@@ -174,14 +194,36 @@ IMAGE_TRANSFORM = _tv.Compose([
 ])
 
 # ── Inference ─────────────────────────────────────────────────────────────────
-def _email_predict(text: str) -> float:
-    cleaned = _clean_email_text(text)                    # match training preprocessing
+def _email_predict_svm(text: str) -> float:
+    cleaned = _clean_email_text(text)
     vec = email_tfid.transform([cleaned])
     dec = email_model.decision_function(vec)[0]
-    # Platt scaling using the coefficients stored during SVM training with probability=True
     A, B = email_model._probA[0], email_model._probB[0]
-    prob = 1.0 / (1.0 + np.exp(A * dec + B))
-    return float(prob)
+    return float(1.0 / (1.0 + np.exp(A * dec + B)))
+
+def _email_predict_bert(text: str) -> float:
+    enc = bert_email_tokenizer(
+        text,
+        padding=True,
+        truncation=True,
+        max_length=512,
+        return_tensors="pt",
+    )
+    enc = {k: v.to(device) for k, v in enc.items()}
+    with torch.no_grad():
+        logits = bert_email_model(**enc).logits
+        prob   = torch.softmax(logits, dim=1)[0, 1]
+    return float(prob.cpu().item())
+
+def _email_predict(text: str) -> float:
+    """Fuse BERT (80%) + SVM (20%) when both are available; fall back to whichever loads."""
+    bert_ok = bert_email_model is not None and bert_email_tokenizer is not None
+    svm_ok  = email_model is not None and email_tfid is not None
+    if bert_ok and svm_ok:
+        return 0.80 * _email_predict_bert(text) + 0.20 * _email_predict_svm(text)
+    if bert_ok:
+        return _email_predict_bert(text)
+    return _email_predict_svm(text)
 
 _IP      = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
 _BAD_TLD = {"xyz", "tk", "ml", "ga", "cf"}
@@ -303,8 +345,12 @@ async def _err(req, exc):
 
 @app.get("/api/health")
 def health():
+    bert_email_ok = bert_email_model is not None and bert_email_tokenizer is not None
+    svm_ok        = email_model is not None and email_tfid is not None
     return {"status": "ok", "models": {
-        "email": email_model      is not None and email_tfid is not None,
+        "email": bert_email_ok or svm_ok,
+        "email_bert": bert_email_ok,
+        "email_svm":  svm_ok,
         "url":   bert_url_model   is not None and bert_url_tokenizer is not None,
         "image": image_model      is not None,
     }}
@@ -315,12 +361,20 @@ class EmailReq(BaseModel):
 
 @app.post("/api/predict/email")
 def predict_email(body: EmailReq):
-    if email_model is None or email_tfid is None:
+    bert_ok = bert_email_model is not None and bert_email_tokenizer is not None
+    svm_ok  = email_model is not None and email_tfid is not None
+    if not bert_ok and not svm_ok:
         raise HTTPException(503, "Email model not loaded")
     text = f"{body.subject or ''} {body.content}".strip()
     t0   = time.perf_counter()
     prob = _email_predict(text)
-    return _result("email", prob, ["SVM"], int((time.perf_counter()-t0)*1000))
+    if bert_ok and svm_ok:
+        models_used = ["BERT", "SVM"]
+    elif bert_ok:
+        models_used = ["BERT"]
+    else:
+        models_used = ["SVM"]
+    return _result("email", prob, models_used, int((time.perf_counter()-t0)*1000))
 
 class UrlReq(BaseModel):
     url: str
