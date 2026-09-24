@@ -9,17 +9,17 @@ import type { Tab, PredictionResult, MultimodalResult } from '../types'
 type AnyResult = PredictionResult | MultimodalResult | null
 
 const TABS: { id: Tab; label: string; sublabel: string }[] = [
-  { id: 'email',      label: 'Email',      sublabel: 'TF-IDF + SVM'     },
-  { id: 'url',        label: 'URL',        sublabel: 'BERT'              },
-  { id: 'image',      label: 'Image',      sublabel: 'CNN Ensemble'      },
-  { id: 'multimodal', label: 'Multimodal', sublabel: 'Max-Score Fusion'  },
+  { id: 'email',      label: 'Email',      sublabel: 'BERT + SVM'           },
+  { id: 'url',        label: 'URL',        sublabel: 'BERT + LR-Structural' },
+  { id: 'image',      label: 'Image',      sublabel: 'CNN Ensemble'         },
+  { id: 'multimodal', label: 'Multimodal', sublabel: 'Weighted Avg Fusion'  },
 ]
 
 const TAB_DESC: Record<Tab, string> = {
-  email:      'Running Email analysis with TF-IDF + SVM (RBF kernel).',
-  url:        'Running URL analysis with BERT (fine-tuned bert-base-uncased).',
+  email:      'Running Email analysis with BERT (80%) + SVM TF-IDF (20%) weighted fusion.',
+  url:        'Running URL analysis with BERT (80%) + LR structural features (20%) fusion.',
   image:      'Running Image analysis with CNN Ensemble (ResNet50 · EfficientNet · DenseNet).',
-  multimodal: 'Running Multimodal analysis with max-score decision fusion.',
+  multimodal: 'Running Multimodal analysis with F1-weighted average decision fusion.',
 }
 
 const QUICK_CARDS = [
@@ -65,9 +65,9 @@ export default function ScannerPage() {
           {/* Right: accuracy metric cards */}
           <div className="hero-stats-row">
             {[
-              { v: '98.3%', l: 'Email Accuracy', d: 'TF-IDF + SVM'   },
-              { v: '95.1%', l: 'URL Accuracy',   d: 'BERT fine-tuned' },
-              { v: '89.7%', l: 'Image Accuracy', d: 'CNN Ensemble'    },
+              { v: '97.5%', l: 'Email Accuracy', d: 'BERT + SVM'          },
+              { v: '95.1%', l: 'URL Accuracy',   d: 'BERT + LR-Structural' },
+              { v: '89.7%', l: 'Image Accuracy', d: 'CNN Ensemble'         },
             ].map(s => (
               <div key={s.l} className="stat-card">
                 <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '-0.5px' }}>{s.v}</div>

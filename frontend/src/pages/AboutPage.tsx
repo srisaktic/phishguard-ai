@@ -1,40 +1,40 @@
 export default function AboutPage() {
   const MODALITIES = [
     {
-      icon: '✉', fullName: 'Email Modality', acc: '98.3%',
+      icon: '✉', fullName: 'Email Modality', acc: '97.5%',
       color: 'var(--accent)', colorBg: 'var(--accent-bg)', colorBorder: 'var(--accent-border)',
-      desc: 'TF-IDF vectorization (120,375 features) + SVM (RBF kernel). Subject + body concatenated. Platt scaling for calibrated probability output.',
-      tags: ['TF-IDF', 'SVM', '120,375 features'],
+      desc: 'BERT (fine-tuned, 80%) + SVM TF-IDF (20%) weighted fusion. Subject + body concatenated, cleaned and lemmatized. Platt scaling for calibrated probability. Full 6-model fusion achieves 98.76% accuracy.',
+      tags: ['BERT', 'SVM', 'Weighted Fusion'],
     },
     {
       icon: '🔗', fullName: 'URL Modality', acc: '95.1%',
       color: '#60a5fa', colorBg: 'rgba(96,165,250,0.08)', colorBorder: 'rgba(96,165,250,0.25)',
-      desc: 'BERT (bert-base-uncased) fine-tuned on raw URL strings. Full URL tokenized as input sequence. 3-epoch training on 7,500+ samples.',
-      tags: ['BERT', 'bert-base-uncased', 'Fine-tuned'],
+      desc: 'BERT (bert-base-uncased, 80%) fine-tuned on raw URL strings + Logistic Regression on 11 structural features (20%). 3-epoch training on 7,500+ samples.',
+      tags: ['BERT', 'LR-Structural', 'Fine-tuned'],
     },
     {
       icon: '🖼', fullName: 'Image Modality', acc: '89.7%',
       color: '#a78bfa', colorBg: 'rgba(167,139,250,0.08)', colorBorder: 'rgba(167,139,250,0.25)',
-      desc: 'CNN ensemble: ResNet50, EfficientNet-B0, DenseNet121. Equal-weight soft voting. 5-epoch training on 1,313 phishing/legitimate screenshots.',
+      desc: 'F1-weighted CNN ensemble: ResNet50 (34%), EfficientNet-B0 (34%), DenseNet121 (33%). Soft voting across complementary architectures. 5-epoch training on 1,313 phishing/legitimate screenshots.',
       tags: ['ResNet50', 'EfficientNet-B0', 'DenseNet121'],
     },
     {
-      icon: '⚡', fullName: 'Multimodal Fusion', acc: 'max(·)',
+      icon: '⚡', fullName: 'Multimodal Fusion', acc: 'weighted',
       color: 'var(--safe)', colorBg: 'var(--safe-bg)', colorBorder: 'var(--safe-border)',
-      desc: 'Max-score fusion: highest phishing probability across all active modalities becomes the final verdict. Strong signal from any one modality is decisive.',
-      tags: ['Max-Score', 'Conservative', 'No Dilution'],
+      desc: 'F1-weighted average across active modalities: URL (40%), Image (35%), Email (25%). Weights renormalise when a subset is provided. Balances sensitivity with false-positive control.',
+      tags: ['Weighted Average', 'F1-Weighted', 'Renormalised'],
     },
   ]
 
   const STACK = [
     { k: 'Frontend',    v: 'React 18 + Vite + TypeScript' },
     { k: 'Backend',     v: 'FastAPI + Uvicorn' },
-    { k: 'Email ML',    v: 'scikit-learn · TF-IDF · SVM' },
-    { k: 'URL Model',   v: 'HuggingFace · BERT fine-tuned' },
+    { k: 'Email ML',    v: 'BERT fine-tuned · SVM · TF-IDF' },
+    { k: 'URL Model',   v: 'BERT fine-tuned · LR structural' },
     { k: 'Image DL',    v: 'PyTorch + torchvision' },
     { k: 'CNN Models',  v: 'ResNet50 · EfficientNet · DenseNet' },
     { k: 'Privacy',     v: 'Protected processing — no external calls' },
-    { k: 'Deployment',  v: 'Web-ready inference service' },
+    { k: 'Deployment',  v: 'Vercel (frontend) · Google Cloud Run (backend)' },
   ]
 
   return (
